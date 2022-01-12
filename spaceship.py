@@ -2,6 +2,7 @@
 
 import sys
 import os
+from time import sleep
 import random
 import pygame
 from pygame.locals import *
@@ -46,11 +47,21 @@ class Player(pygame.sprite.Sprite):
         if self.rect.top > HEIGHT:
             self.rect.bottom = 0
 
+    def destroy(self):
+        print('player destroyed')
+        sound_file = os.path.join(sound_folder, 'explosion.ogg')
+        destroyed_sound = pygame.mixer.Sound(sound_file)
+        channel = destroyed_sound.play()
 
 class Rock(pygame.sprite.Sprite):
 
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
+
+        #img_file = os.path.join(img_folder, 'rock.png')
+        #rock_img = pygame.image.load(img_file).convert()
+        #self.image = rock_img
+
         size = random.randint(20,70)
         self.image = pygame.Surface([size, size])
         self.image.fill(BLUE)
@@ -59,7 +70,7 @@ class Rock(pygame.sprite.Sprite):
         y = random.randint(0, HEIGHT)
         self.rect.center = (x, y)
         self.speed_x = random.randint(3,7)
-        self.speed_y = random.randint(-1,1)
+        self.speed_y = random.randint(-2,2)
 
     def update(self):
         self.rect.x -= self.speed_x
@@ -77,6 +88,11 @@ class Rock(pygame.sprite.Sprite):
         if self.rect.top > HEIGHT:
             self.rect.bottom = 0
 
+    def destroy(self):
+        sound_file = os.path.join(sound_folder, 'destroyed.ogg')
+        destroyed_sound = pygame.mixer.Sound(sound_file)
+        channel = destroyed_sound.play()
+        self.kill()
 
 class Phaser(pygame.sprite.Sprite):
 
@@ -104,10 +120,12 @@ class Phaser(pygame.sprite.Sprite):
 def checkCollisions():
     for r in all_rocks:
         if pygame.sprite.collide_rect_ratio(0.75)(player, r):
+            player.destroy()
+            sleep(2)
             sys.exit()
         for p in all_phasers:
             if pygame.sprite.collide_rect_ratio(0.75)(r, p):
-                r.kill()
+                r.destroy()
 # Game init
 pygame.init()
 pygame.mixer.init()
@@ -138,12 +156,12 @@ while run:
     ticks=pygame.time.get_ticks()
 
     if ticks >= (num_rocks+1)*new_rock_interval:
-        print(ticks, type(ticks))
+        num_rocks += 1
+        print('ticks %s Rock %s' % (ticks, num_rocks))
         rocks.append(Rock())
         all_sprites.add(rocks[-1])
         all_rocks.add(rocks[-1])
-        num_rocks += 1
-        new_rock_interval -= 100
+        new_rock_interval -= 5
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
