@@ -22,9 +22,13 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
+
+        img_file = os.path.join(img_folder, 'spaceship.png')
+        player_img = pygame.image.load(img_file).convert()
+
         self.image = player_img
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH / 2, HEIGHT / 2)
+        self.rect.center = (WIDTH/4, HEIGHT/2)
         self.x = 0
         self.y = 0
 
@@ -54,12 +58,12 @@ class Rock(pygame.sprite.Sprite):
         x = random.randint(WIDTH-WIDTH/8, WIDTH)
         y = random.randint(0, HEIGHT)
         self.rect.center = (x, y)
+        self.speed_x = random.randint(3,7)
+        self.speed_y = random.randint(-1,1)
 
     def update(self):
-        speed_x = random.randint(1,6)
-        #speed_y = random.randint(-1,1)
-        self.rect.x -= speed_x
-        #self.rect.y += speed_y
+        self.rect.x -= self.speed_x
+        self.rect.y += self.speed_y
         if self.rect.left > WIDTH:
             self.kill()
 
@@ -84,11 +88,13 @@ class Phaser(pygame.sprite.Sprite):
         x = player.rect.center[0]+15
         y = player.rect.center[1]+6
         self.rect.center = (x,y)
+
+        sound_file = os.path.join(sound_folder, 'phaser.ogg')
+        self.phaser_sound = pygame.mixer.Sound(sound_file)
         self.playSound()
 
     def playSound(self):
-        phaser_sound = pygame.mixer.Sound(sound_file)
-        channel = phaser_sound.play()
+        channel = self.phaser_sound.play()
 
     def update(self):
         self.rect.x += 10
@@ -97,10 +103,10 @@ class Phaser(pygame.sprite.Sprite):
 
 def checkCollisions():
     for r in all_rocks:
-        if pygame.sprite.collide_rect(player, r):
+        if pygame.sprite.collide_rect_ratio(0.75)(player, r):
             sys.exit()
         for p in all_phasers:
-            if pygame.sprite.collide_rect(r, p):
+            if pygame.sprite.collide_rect_ratio(0.75)(r, p):
                 r.kill()
 # Game init
 pygame.init()
@@ -112,10 +118,7 @@ clock = pygame.time.Clock()
 # set up asset folders
 game_folder = os.path.dirname(__file__)
 img_folder = os.path.join(game_folder, 'img')
-img_file = os.path.join(img_folder, 'spaceship.png')
-player_img = pygame.image.load(img_file).convert()
 sound_folder = os.path.join(game_folder, 'sound')
-sound_file = os.path.join(sound_folder, 'phaser.ogg')
 
 # sprites
 all_sprites = pygame.sprite.Group()
@@ -127,21 +130,20 @@ all_sprites.add(player)
 
 rocks = []
 num_rocks = 0
-#rock = Rock()
-#all_sprites.add(rock)
-#all_rocks.add(rock)
+new_rock_interval = 4000
 
 run = True
 while run:
     clock.tick(FPS)
     ticks=pygame.time.get_ticks()
 
-    if ticks >= (num_rocks+1)*4000:
+    if ticks >= (num_rocks+1)*new_rock_interval:
         print(ticks, type(ticks))
         rocks.append(Rock())
         all_sprites.add(rocks[-1])
         all_rocks.add(rocks[-1])
         num_rocks += 1
+        new_rock_interval -= 100
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
