@@ -1,10 +1,13 @@
-import pygame
-from pygame.locals import *
+#!/usr/bin/env python
+
 import sys
 import os
+import random
+import pygame
+from pygame.locals import *
 
-WIDTH = 500
-HEIGHT = 340 #480 
+WIDTH = 700
+HEIGHT = 480
 FPS = 30
 
 # define colors
@@ -26,7 +29,7 @@ class Player(pygame.sprite.Sprite):
         self.y = 0
 
     def update(self):
-        self.rect.x += (5 + self.x)
+        self.rect.x += (1 + self.x)
         self.rect.y += self.y
 
         if self.rect.left > WIDTH:
@@ -38,6 +41,38 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = HEIGHT
         if self.rect.top > HEIGHT:
             self.rect.bottom = 0
+
+
+class Rock(pygame.sprite.Sprite):
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        size = random.randint(20,70)
+        self.image = pygame.Surface([size, size])
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect()
+        x = random.randint(WIDTH-WIDTH/8, WIDTH)
+        y = random.randint(0, HEIGHT)
+        self.rect.center = (x, y)
+
+    def update(self):
+        speed_x = random.randint(1,6)
+        #speed_y = random.randint(-1,1)
+        self.rect.x -= speed_x
+        #self.rect.y += speed_y
+        if self.rect.left > WIDTH:
+            self.kill()
+
+        if self.rect.left > WIDTH:
+            self.rect.right = 0
+        if self.rect.right < 0:
+            self.rect.left = WIDTH
+
+        if self.rect.bottom < 0:
+            self.rect.top = HEIGHT
+        if self.rect.top > HEIGHT:
+            self.rect.bottom = 0
+
 
 class Phaser(pygame.sprite.Sprite):
 
@@ -59,8 +94,14 @@ class Phaser(pygame.sprite.Sprite):
         self.rect.x += 10
         if self.rect.left > WIDTH:
             self.kill()
-    
 
+def checkCollisions():
+    for r in all_rocks:
+        if pygame.sprite.collide_rect(player, r):
+            sys.exit()
+        for p in all_phasers:
+            if pygame.sprite.collide_rect(r, p):
+                r.kill()
 # Game init
 pygame.init()
 pygame.mixer.init()
@@ -78,24 +119,42 @@ sound_file = os.path.join(sound_folder, 'phaser.ogg')
 
 # sprites
 all_sprites = pygame.sprite.Group()
+all_phasers = pygame.sprite.Group()
+all_rocks = pygame.sprite.Group()
+
 player = Player()
 all_sprites.add(player)
 
+rocks = []
+num_rocks = 0
+#rock = Rock()
+#all_sprites.add(rock)
+#all_rocks.add(rock)
 
 run = True
 while run:
     clock.tick(FPS)
+    ticks=pygame.time.get_ticks()
+
+    if ticks >= (num_rocks+1)*4000:
+        print(ticks, type(ticks))
+        rocks.append(Rock())
+        all_sprites.add(rocks[-1])
+        all_rocks.add(rocks[-1])
+        num_rocks += 1
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 phaser = Phaser(player)
+                all_phasers.add(phaser)
                 all_sprites.add(phaser)
-                
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_UP]:
-        player.y -= 1
+         player.y -= 1
     if keys[pygame.K_DOWN]:
         player.y += 1
     if keys[pygame.K_LEFT]:
@@ -108,6 +167,9 @@ while run:
 
     # Update
     all_sprites.update()
+
+    # Check collisions
+    checkCollisions()
 
     # Draw / render
     screen.fill(BLACK)
