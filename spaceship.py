@@ -9,6 +9,8 @@ from pygame.locals import *
 
 WIDTH = 700
 HEIGHT = 480
+CENTER = (WIDTH/2, HEIGHT/2)
+
 FPS = 30
 
 # define colors
@@ -18,6 +20,8 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255,255,0)
+
+class GameError(Exception): pass
 
 class Game():
 
@@ -48,23 +52,25 @@ class Game():
         self.all_sprites.add(self.player)
 
         self.rocks = []
-        self.new_rock_interval = 4000
+        self.num_hits = 0
 
         num_rocks = 0
         start_ticks = pygame.time.get_ticks()
+        new_rock_interval = 3000
+
         self.game_over = 0
         while not self.game_over:
             self.clock.tick(FPS)
             ticks = pygame.time.get_ticks()
 
-            if ticks-start_ticks >= (num_rocks+1) * self.new_rock_interval:
+            if ticks-start_ticks >= (num_rocks+1) * new_rock_interval:
                 num_rocks += 1
                 print('ticks %s Rock %s' % (ticks, num_rocks))
                 rock_name = 'rock_%s' % num_rocks
                 self.rocks.append(Rock(rock_name, self))
                 self.all_sprites.add(self.rocks[-1])
                 self.all_rocks.add(self.rocks[-1])
-                self.new_rock_interval -= 5
+                new_rock_interval -= 20
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -99,6 +105,10 @@ class Game():
             # Draw / render
             self.screen.fill(BLACK)
             self.all_sprites.draw(self.screen)
+            if ticks-start_ticks <= 3000:
+                self.drawText('Get Ready', 22, 'center')
+                self.drawText('Q - to Quit', 16, 'below_center')
+            self.drawText(str(self.num_hits), 24, 'topleft')
 
             # *after* drawing everything, flip the display
             pygame.display.flip()
@@ -112,15 +122,32 @@ class Game():
 
     def checkCollisions(self):
         for r in self.all_rocks:
+            # rock his player?
             if pygame.sprite.collide_rect_ratio(0.75)(self.player, r):
                 self.player.destroy()
+                self.drawText('Game Over', 32, 'center')
                 sleep(2)
-                #sys.exit()
-                #self.restartGame()
                 self.game_over = 1
+
+            # phaser hits rock?
             for p in self.all_phasers:
                 if pygame.sprite.collide_rect_ratio(0.75)(r, p):
                     r.destroy()
+                    self.num_hits += 1
+
+    def drawText(self, raw_text, font_size, pos): #center=None, topleft=None):
+        font = pygame.font.SysFont("comicsansms", font_size)
+        text = font.render(raw_text, True, WHITE)
+        if pos == 'center':
+            rect = text.get_rect(center=CENTER)q
+        elif pos == 'below_center':
+            rect = text.get_rect(center=(WIDTH/2, (HEIGHT/2)+30))
+        elif pos == 'topleft':
+            rect = text.get_rect(topleft=(20, 10))
+        else:
+            raise GameError('drawText: Unrecognized position: %s' % pos)
+        self.screen.blit(text, rect)
+        pygame.display.flip()
 
 class Player(pygame.sprite.Sprite):
 
@@ -132,7 +159,7 @@ class Player(pygame.sprite.Sprite):
 
         self.image = player_img
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH/4, HEIGHT/2)
+        self.rect.center = (int(WIDTH/5), HEIGHT/2)
         self.x = 0
         self.y = 0
 
@@ -230,4 +257,3 @@ class Phaser(pygame.sprite.Sprite):
 if __name__ == '__main__':
     game = Game()
     game.play()
-
