@@ -38,31 +38,43 @@ class Game():
         self.all_phasers = pygame.sprite.Group()
         self.all_rocks = pygame.sprite.Group()
 
+    def play(self):
+        self.quit = 0
+        while not self.quit:
+            self._play()
+
+    def _play(self):
         self.player = Player(self)
         self.all_sprites.add(self.player)
 
         self.rocks = []
-        self.num_rocks = 0
         self.new_rock_interval = 4000
 
-    def play(self):
-        run = True
-        while run:
+        num_rocks = 0
+        start_ticks = pygame.time.get_ticks()
+        self.game_over = 0
+        while not self.game_over:
             self.clock.tick(FPS)
             ticks = pygame.time.get_ticks()
 
-            if ticks >= (self.num_rocks+1) * self.new_rock_interval:
-                self.num_rocks += 1
-                print('ticks %s Rock %s' % (ticks, self.num_rocks))
-                self.rocks.append(Rock(self))
+            if ticks-start_ticks >= (num_rocks+1) * self.new_rock_interval:
+                num_rocks += 1
+                print('ticks %s Rock %s' % (ticks, num_rocks))
+                rock_name = 'rock_%s' % num_rocks
+                self.rocks.append(Rock(rock_name, self))
                 self.all_sprites.add(self.rocks[-1])
                 self.all_rocks.add(self.rocks[-1])
                 self.new_rock_interval -= 5
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    run = False
+                    self.game_over = 1
+                    self.quit = 1
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        print('Player Quit')
+                        self.game_over = 1
+                        self.quit = 1
                     if event.key == pygame.K_SPACE:
                         phaser = Phaser(self)
                         self.all_sprites.add(phaser)
@@ -77,9 +89,6 @@ class Game():
                 self.player.x -= 1
             if keys[pygame.K_RIGHT]:
                 self.player.x += 1
-            #if keys[pygame.K_q]:
-            #    self.print('quit')
-            #    run = False
 
             # Update
             self.all_sprites.update()
@@ -94,12 +103,21 @@ class Game():
             # *after* drawing everything, flip the display
             pygame.display.flip()
 
+        # remove all sprites
+        for s in self.all_sprites:
+            print('killing sprite: %s' % s)
+            s.kill()
+
+        self.game_over = 0
+
     def checkCollisions(self):
         for r in self.all_rocks:
             if pygame.sprite.collide_rect_ratio(0.75)(self.player, r):
                 self.player.destroy()
                 sleep(2)
-                sys.exit()
+                #sys.exit()
+                #self.restartGame()
+                self.game_over = 1
             for p in self.all_phasers:
                 if pygame.sprite.collide_rect_ratio(0.75)(r, p):
                     r.destroy()
@@ -117,6 +135,9 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = (WIDTH/4, HEIGHT/2)
         self.x = 0
         self.y = 0
+
+    def __repr__(self):
+        return 'player'
 
     def update(self):
         self.rect.x += (1 + self.x)
@@ -140,8 +161,9 @@ class Player(pygame.sprite.Sprite):
 
 class Rock(pygame.sprite.Sprite):
 
-    def __init__(self, game):
+    def __init__(self, name, game):
         pygame.sprite.Sprite.__init__(self)
+        self.name = name
 
         #img_file = os.path.join(self.img_folder, 'rock.png')
         #rock_img = pygame.image.load(img_file).convert()
@@ -156,6 +178,9 @@ class Rock(pygame.sprite.Sprite):
         self.rect.center = (x, y)
         self.speed_x = random.randint(3,7)
         self.speed_y = random.randint(-2,2)
+
+    def __repr__(self):
+        return self.name
 
     def update(self):
         self.rect.x -= self.speed_x
