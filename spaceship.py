@@ -139,7 +139,7 @@ class Game():
         font = pygame.font.SysFont("comicsansms", font_size)
         text = font.render(raw_text, True, WHITE)
         if pos == 'center':
-            rect = text.get_rect(center=CENTER)q
+            rect = text.get_rect(center=CENTER)
         elif pos == 'below_center':
             rect = text.get_rect(center=(WIDTH/2, (HEIGHT/2)+30))
         elif pos == 'topleft':
